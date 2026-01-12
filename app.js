@@ -211,7 +211,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const modeSelect = document.getElementById('visual-mode');
     const sensitivitySlider = document.getElementById('sensitivity');
     const trailToggle = document.getElementById('trail-toggle');
-    const glassPanel = document.querySelector('.glass-panel');
+    const aspectRatioSelect = document.getElementById('aspect-ratio');
+    const visualScaleSlider = document.getElementById('visual-scale');
+    const ratioContainer = document.getElementById('ratio-container');
+    const borderToggle = document.getElementById('border-toggle');
+    const glassPanel = document.getElementById('main-panel');
+    const controlsContainer = document.querySelector('.controls-container');
+    const minimizeBtn = document.getElementById('minimize-btn');
 
     const analyzer = new AudioAnalyzer();
     const waveViz = new WaveVisualizer(canvas, ctx);
@@ -221,12 +227,47 @@ document.addEventListener('DOMContentLoaded', () => {
     let isUIVisible = true;
 
     function resize() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        const ratio = aspectRatioSelect.value;
+        const scaleFactor = visualScaleSlider.value / 100;
+        const parentW = window.innerWidth;
+        const parentH = window.innerHeight;
+
+        if (ratio === 'full') {
+            ratioContainer.style.width = (100 * scaleFactor) + '%';
+            ratioContainer.style.height = (100 * scaleFactor) + '%';
+        } else {
+            const [w, h] = ratio.split(':').map(Number);
+            const targetRatio = w / h;
+            const currentRatio = parentW / parentH;
+
+            let finalW, finalH;
+            if (currentRatio > targetRatio) {
+                // Window is wider than target ratio
+                finalH = parentH;
+                finalW = parentH * targetRatio;
+            } else {
+                // Window is taller than target ratio
+                finalW = parentW;
+                finalH = parentW / targetRatio;
+            }
+
+            ratioContainer.style.width = (finalW * scaleFactor) + 'px';
+            ratioContainer.style.height = (finalH * scaleFactor) + 'px';
+        }
+
+        canvas.width = ratioContainer.clientWidth;
+        canvas.height = ratioContainer.clientHeight;
         particleViz.initParticles();
     }
 
     window.addEventListener('resize', resize);
+    aspectRatioSelect.addEventListener('change', resize);
+    visualScaleSlider.addEventListener('input', resize);
+
+    borderToggle.addEventListener('change', () => {
+        ratioContainer.classList.toggle('has-border', borderToggle.checked);
+    });
+
     resize();
 
     // Auto-hide UI when recording (optional feature)
@@ -239,6 +280,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    function toggleMinimize(force = null) {
+        const isMinimized = force !== null ? force : !glassPanel.classList.contains('minimized');
+        glassPanel.classList.toggle('minimized', isMinimized);
+        controlsContainer.classList.toggle('minimized-pos', isMinimized);
+        minimizeBtn.innerText = isMinimized ? '↗️' : '↙️';
+
+        // Slightly fade out headers when minimized
+        document.querySelector('header').style.opacity = isMinimized ? 0.3 : 1;
+        document.querySelector('footer').style.opacity = isMinimized ? 0 : 1;
+    }
+
+    minimizeBtn.addEventListener('click', () => toggleMinimize());
+
     startBtn.addEventListener('click', async () => {
         const success = await analyzer.init();
         if (success) {
@@ -246,6 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
             statusIndicator.classList.add('active');
             startBtn.disabled = true;
             stopBtn.disabled = false;
+            toggleMinimize(true); // Auto minimize on start
             startLoop();
         }
     });
@@ -257,6 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
         statusIndicator.classList.remove('active');
         startBtn.disabled = false;
         stopBtn.disabled = true;
+        toggleMinimize(false); // Restore on stop
         ctx.clearRect(0, 0, canvas.width, canvas.height);
     });
 

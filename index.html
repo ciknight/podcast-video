@@ -15,7 +15,9 @@
 
 <body>
     <div id="app">
-        <canvas id="visualizer"></canvas>
+        <div class="visual-container" id="ratio-container">
+            <canvas id="visualizer"></canvas>
+        </div>
 
         <div class="overlay">
             <header>
@@ -24,10 +26,13 @@
             </header>
 
             <div class="controls-container">
-                <div class="glass-panel">
-                    <div class="status-indicator">
-                        <div class="dot"></div>
-                        <span id="status-text">就绪</span>
+                <div class="glass-panel" id="main-panel">
+                    <div class="panel-header">
+                        <div class="status-indicator">
+                            <div class="dot"></div>
+                            <span id="status-text">就绪</span>
+                        </div>
+                        <button id="minimize-btn" class="icon-btn" title="点击缩小">↙️</button>
                     </div>
 
                     <div class="btns">
@@ -40,13 +45,25 @@
                     </div>
 
                     <div class="settings">
-                        <div class="setting-group">
-                            <label>视觉模式</label>
-                            <select id="visual-mode">
-                                <option value="wave">流体波浪 (Waves)</option>
-                                <option value="particles">动能粒子 (Particles)</option>
-                                <option value="combined">混合模式 (Hybrid)</option>
-                            </select>
+                        <div class="setting-row">
+                            <div class="setting-group">
+                                <label>视觉模式</label>
+                                <select id="visual-mode">
+                                    <option value="wave">流体波浪 (Waves)</option>
+                                    <option value="particles">动能粒子 (Particles)</option>
+                                    <option value="combined">混合模式 (Hybrid)</option>
+                                </select>
+                            </div>
+
+                            <div class="setting-group">
+                                <label>画布比例</label>
+                                <select id="aspect-ratio">
+                                    <option value="full">全屏 (Full)</option>
+                                    <option value="16:9">16:9 (横屏)</option>
+                                    <option value="9:16">9:16 (竖屏)</option>
+                                    <option value="4:3">4:3 (经典)</option>
+                                </select>
+                            </div>
                         </div>
 
                         <div class="setting-group">
@@ -54,9 +71,19 @@
                             <input type="range" id="sensitivity" min="1" max="10" value="5">
                         </div>
 
+                        <div class="setting-group">
+                            <label>画面大小</label>
+                            <input type="range" id="visual-scale" min="20" max="100" value="100">
+                        </div>
+
                         <div class="setting-group checkbox">
                             <label for="trail-toggle">残留虚影 (Trails)</label>
                             <input type="checkbox" id="trail-toggle" checked>
+                        </div>
+
+                        <div class="setting-group checkbox">
+                            <label for="border-toggle">显示边框 (Border)</label>
+                            <input type="checkbox" id="border-toggle">
                         </div>
                     </div>
                 </div>
