@@ -18,7 +18,8 @@ class AudioAnalyzer {
             bass: 0,
             mid: 0,
             treble: 0,
-            average: 0
+            average: 0,
+            brightness: 0 // New metric for timbre
         };
     }
 
@@ -27,7 +28,7 @@ class AudioAnalyzer {
             this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
             this.analyzer = this.audioContext.createAnalyser();
-            this.analyzer.fftSize = 256; // High frequency resolution
+            this.analyzer.fftSize = 2048; // Higher resolution for better voice analysis
             this.analyzer.smoothingTimeConstant = 0.8;
 
             this.source = this.audioContext.createMediaStreamSource(this.stream);
@@ -46,25 +47,45 @@ class AudioAnalyzer {
         if (!this.isInitialized) return;
         this.analyzer.getByteFrequencyData(this.dataArray);
 
-        // Process bands
         const binCount = this.analyzer.frequencyBinCount;
-        const bassEnd = Math.floor(binCount * 0.1);
-        const midEnd = Math.floor(binCount * 0.5);
+        const sampleRate = this.audioContext.sampleRate;
+        const binWidth = (sampleRate / 2) / binCount;
 
-        let bassSum = 0, midSum = 0, trebleSum = 0, totalSum = 0;
+        let totalSum = 0;
+        let weightedSum = 0;
+
+        let bassSum = 0, midSum = 0, trebleSum = 0;
+        let bassBins = 0, midBins = 0, trebleBins = 0;
 
         for (let i = 0; i < binCount; i++) {
             const value = this.dataArray[i];
-            totalSum += value;
-            if (i < bassEnd) bassSum += value;
-            else if (i < midEnd) midSum += value;
-            else trebleSum += value;
+            const freq = i * binWidth;
+
+            if (value > 10) { // Noise gate
+                totalSum += value;
+                weightedSum += i * value;
+
+                // Fine-tuned bands for voice analysis
+                if (freq >= 80 && freq < 300) {
+                    bassSum += value;
+                    bassBins++;
+                } else if (freq >= 300 && freq < 3000) {
+                    midSum += value;
+                    midBins++;
+                } else if (freq >= 3000 && freq < 8000) {
+                    trebleSum += value;
+                    trebleBins++;
+                }
+            }
         }
 
-        this.bands.bass = bassSum / bassEnd / 255;
-        this.bands.mid = midSum / (midEnd - bassEnd) / 255;
-        this.bands.treble = trebleSum / (binCount - midEnd) / 255;
+        this.bands.bass = bassBins > 0 ? (bassSum / bassBins / 255) : 0;
+        this.bands.mid = midBins > 0 ? (midSum / midBins / 255) : 0;
+        this.bands.treble = trebleBins > 0 ? (trebleSum / trebleBins / 255) : 0;
         this.bands.average = totalSum / binCount / 255;
+
+        // Spectral Centroid - helpful to distinguish voice "brightness"
+        this.bands.brightness = totalSum > 0 ? (weightedSum / totalSum / binCount) : 0;
     }
 
     stop() {
@@ -101,20 +122,24 @@ class WaveVisualizer {
         }
 
         // Draw multiple waves responding to different bands
-        this.drawWave(this.waves[0], bands.bass, sensitivity, height * 0.5, 0.6);
-        this.drawWave(this.waves[1], bands.mid, sensitivity, height * 0.52, 0.4);
-        this.drawWave(this.waves[2], bands.treble, sensitivity, height * 0.48, 0.3);
+        const b = bands.brightness;
+        this.drawWave(this.waves[0], bands.bass, sensitivity, height * 0.5, 0.6, b);
+        this.drawWave(this.waves[1], bands.mid, sensitivity, height * 0.52, 0.4, b);
+        this.drawWave(this.waves[2], bands.treble, sensitivity, height * 0.48, 0.3, b);
     }
 
-    drawWave(cfg, bandValue, sensitivity, yBase, alpha) {
+    drawWave(cfg, bandValue, sensitivity, yBase, alpha, brightness = 0) {
         const { width } = this.canvas;
         this.ctx.beginPath();
 
+        // Dynamic color shift based on brightness for voice differentiation
+        const hueShift = brightness * 120;
+
         // Create gradient
         const gradient = this.ctx.createLinearGradient(0, 0, width, 0);
-        gradient.addColorStop(0, cfg.color);
+        gradient.addColorStop(0, `hsla(${(200 + hueShift) % 360}, 100%, 60%, 1)`);
         gradient.addColorStop(0.5, '#fff');
-        gradient.addColorStop(1, cfg.color);
+        gradient.addColorStop(1, `hsla(${(280 + hueShift) % 360}, 100%, 60%, 1)`);
 
         this.ctx.strokeStyle = gradient;
         this.ctx.lineWidth = 2 + bandValue * 10;
@@ -179,14 +204,15 @@ class ParticleVisualizer {
             // Responsive size
             const size = p.size * (1 + intensity * 0.8);
 
-            // Color based on bands
+            // Color based on bands and brightness
             let hue;
+            const bShift = bands.brightness * 150;
             if (bands.bass > bands.mid && bands.bass > bands.treble) {
-                hue = 240 + bands.bass * 40; // Blues to Purples
+                hue = (210 + bShift) % 360; // Blues to Purples
             } else if (bands.mid > bands.treble) {
-                hue = 180 + bands.mid * 40;  // Cyans to Greens
+                hue = (160 + bShift) % 360;  // Cyans to Greens
             } else {
-                hue = 320 + bands.treble * 40; // Pinks to Magentas
+                hue = (300 + bShift) % 360; // Pinks to Magentas
             }
 
             this.ctx.beginPath();
