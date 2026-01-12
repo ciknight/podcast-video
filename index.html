@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Podcast Visualizer | 播客视觉生成器</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Noto+Sans+SC:wght@300;400;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div id="app">
+        <canvas id="visualizer"></canvas>
+
+        <div class="overlay">
+            <header>
+                <h1>PODCAST<span>VISUALIZER</span></h1>
+                <p>实时音频动态视觉生成</p>
+            </header>
+
+            <div class="controls-container">
+                <div class="glass-panel">
+                    <div class="status-indicator">
+                        <div class="dot"></div>
+                        <span id="status-text">就绪</span>
+                    </div>
+
+                    <div class="btns">
+                        <button id="start-btn" class="primary-btn">
+                            <span class="icon">🎙️</span> 开始监听
+                        </button>
+                        <button id="stop-btn" class="secondary-btn" disabled>
+                            停止
+                        </button>
+                    </div>
+
+                    <div class="settings">
+                        <div class="setting-group">
+                            <label>视觉模式</label>
+                            <select id="visual-mode">
+                                <option value="wave">流体波浪 (Waves)</option>
+                                <option value="particles">动能粒子 (Particles)</option>
+                                <option value="combined">混合模式 (Hybrid)</option>
+                            </select>
+                        </div>
+
+                        <div class="setting-group">
+                            <label>灵敏度</label>
+                            <input type="range" id="sensitivity" min="1" max="10" value="5">
+                        </div>
+
+                        <div class="setting-group checkbox">
+                            <label for="trail-toggle">残留虚影 (Trails)</label>
+                            <input type="checkbox" id="trail-toggle" checked>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <footer>
+                <p>音频可视化 · 播客辅助 · 沉浸式体验</p>
+            </footer>
+        </div>
+    </div>
+
+    <script src="app.js" type="module"></script>
+</body>
+
+</html>
